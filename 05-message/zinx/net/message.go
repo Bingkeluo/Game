@@ -1,7 +1,7 @@
 package net
 
 import "zinx/05-message/zinx/iface"
-
+//实现对数据的封包，解决粘包问题，类似基于tcp的http协议
 type Message struct {
 	//数据
 	data []byte
