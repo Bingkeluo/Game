@@ -5,7 +5,7 @@ import (
 	"net"
 
 	"zinx/05-message/zinx/iface"
-)：
+)
 //connection方法是实现通道的作用：将从客户端获取的请求放在这里进行传递给路由router，再由路由进行具体的分派实现，
 //我们获取来自server包，将原本的通道传递数据放在了现在的connection中
 //定义connection结构体
