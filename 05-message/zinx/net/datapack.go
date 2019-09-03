@@ -8,11 +8,11 @@ import (
 
 //负责封包和拆包
 
-type DataPack struct {
+type NewDataPack struct {
 }
 
 //封包函数
-func (dp *DataPack)Pack(msg iface.IMessage)([]byte,error){
+func (dp *NewDataPack)Pack(msg iface.IMessage)([]byte,error){
 	//打包过程：Message  ====》 字节流
 	//TODO
 	//1. 先获取消息的长度，内容，id
@@ -46,7 +46,7 @@ func (dp *DataPack)Pack(msg iface.IMessage)([]byte,error){
 //在connection中使用时，会读取两次
 //1. 第一次会读取固定8字节的长度，然后调用Unpack
 //2. 第二次会读取真实长度的数据
-func (dp *DataPack)UnPack(data []byte)(iface.IMessage,error){
+func (dp *NewDataPack)UnPack(data []byte)(iface.IMessage,error){
 	//进来的data就是8字节
 	//创建一个reader，读取data
 		reader:=bytes.NewReader(data)

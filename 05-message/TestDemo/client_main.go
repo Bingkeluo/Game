@@ -15,7 +15,7 @@ func main() {
 	}
 
 	data:=[]byte("hello world")
-
+//追加？
 	//write
 	for{
 		n,err:=conn.Write(data)

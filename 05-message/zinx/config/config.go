@@ -15,7 +15,8 @@ type config struct {
 	Version string
 }
 //在init函数中加载LoadConfig函数,init函数会先于main函数执行，而且init函数不能显式调用
-func init(){
+//固定形式没有，参数和返回值
+func init1(){
 	err:=LoadConfig()
 	if err != nil {
 	fmt.Println("zinx配置文件失败。。。。:", err)
