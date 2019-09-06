@@ -1,0 +1,162 @@
+package net
+
+import (
+	"fmt"
+	"net"
+	"zinx/v10-hookFunc/zinx/config"
+	"zinx/v10-hookFunc/zinx/iface"
+)
+
+type Server struct {
+	//属性
+	//1.Ip
+	IP string
+	//2.Port
+	Port uint32
+	//3.Name
+	Name string
+	//4.Version
+	Version string//tcp4，tcp6
+	//5.Router
+	//来自封装的接口，目的将从web端获取的路由，传递给connection
+	//Router iface.IRouter
+
+	//多路由
+	msgHandler iface.IMsgHanler
+	//创建连接控制
+	connmangager iface.IConnManager
+
+	//连接建立时调用的
+	StartHookFunc func(connection iface.IConnection)
+	//连接关闭时调用的
+	StopHookFunc func(connection iface.IConnection)
+}
+
+
+func NewSerVer (name string) iface.IServer{
+	return &Server{
+		IP:      config.GlobalConfig.IP, //监听所有的端口
+		Port:    config.GlobalConfig.PORT,
+		Name:    config.GlobalConfig.Name,
+		Version: config.GlobalConfig.Version,
+		//创建一个空的路由，即使用户不传递过来自定义的实现方法，程序也能正常运行
+		//Router:&Router{},
+		msgHandler:NewMsgHandler(),
+		connmangager:NewConnManager(),
+	}
+}
+
+func (s *Server)Start(){
+
+	fmt.Println("[Server Start]...")
+
+	//socket监听
+
+	//old
+	//l := net.Listen("tcp", ":8888")
+	//c := l.Accept()
+	//c.Read()
+
+	address:=fmt.Sprintf("%s:%d",s.IP,s.Port)
+	//func ResolveIPAddr(network, address string) (*IPAddr, error) {
+	//初始化tcpaddr
+	tcpaddr, err:=net.ResolveTCPAddr(s.Version,address)
+	if err != nil {
+		fmt.Println("Server Start err:",err)
+		return
+	}
+	//创建监听者
+	listener,err:=net.ListenTCP(s.Version,tcpaddr)
+	if err != nil {
+		fmt.Println("net.ListenTCP err:",err)
+		return
+	}
+
+	var cid uint32
+	cid=0
+
+
+	//在server启动之前，启动连接池。
+	s.msgHandler.StartWorkPool()
+
+	go func() {
+		for {
+			//监听，创建通道
+			fmt.Println("0000000000000000000")
+			tcpConn, err := listener.AcceptTCP()
+			if err != nil {
+				fmt.Println("listener.AcceptTCP err:", err)
+				return
+			}
+			//1.得到tcpconn，封装自己的Connection通道，将请求细分
+			myconnecttion:= NewConnection(tcpConn,cid,s.msgHandler,s)
+			//参数tcpconn：将原生的通道传递过去，可以封装创建属于自己的通道，
+			//参数cid：绑定指定的id，这样可以区分请求，
+			//参数s.router：通过绑定的接收者s，将其中的路由传递给我们封装的通道。
+
+
+
+			//连接创建时，将连接添加到连接管理器中
+			s.connmangager.AddConn(myconnecttion)
+
+			fmt.Println("skjahdlkasdjlas")
+
+			cid++
+
+			fmt.Println("aaaaaaaaaaaaaaa")
+			//2. 启动conn.start，
+			//server只负责管理连接，具体的业务处理，由conn负责
+			go myconnecttion.Start()
+			fmt.Println("bbbbbbbbbbbbbbb")
+		}
+	}()
+
+}
+
+func (s *Server)Stop(){
+	fmt.Println("[Server Stop]...")
+}
+
+func (s *Server)Server(){
+	fmt.Println("[Server Server]...")
+	s.Start()
+	fmt.Println("+++++++++++++ go Start done....")
+	select {}
+}
+
+func (s *Server)AddRouter(msgid uint32,router iface.IRouter){
+	s.msgHandler.AddRouter(msgid,router)
+}
+
+func (s *Server)GetConnMAgr()iface.IConnManager{
+	return s.connmangager
+}
+//方法
+//1.启动start
+//2.停止Stop
+//3.服务Serve
+
+//注册两个钩子函数
+func (s *Server)RegisterStartHookFunc(f func(connection iface.IConnection)){
+	s.StartHookFunc=f
+}
+func (s *Server)RegisterStopHookFunc(f func(connection iface.IConnection)){
+	s.StopHookFunc=f
+}
+
+
+func (s *Server)CallStartHookFunc(conn iface.IConnection){
+	if s.StartHookFunc == nil {
+		return
+	}
+
+	s.StartHookFunc(conn)
+}
+func (s *Server)CallStopHookFunc(conn iface.IConnection){
+	if s.StopHookFunc == nil {
+		return
+	}
+
+	s.StopHookFunc(conn)
+}
+
